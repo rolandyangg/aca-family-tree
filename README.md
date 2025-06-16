@@ -37,6 +37,16 @@ const YEAR = {
 
 In order for the new year to be added, it must be appended to the end of the `DATA` array at the bottom of the file. The order of years in that array dictates the order they are outputted.
 
+In the tree, people who did Exec are notated by an extra emoji in their name with the zodiac year that they did Exec. For the extra emoji to be added to their name, you must put their full name in the corresponding emoji dictionary in `EXEC` in the `data.js` file.
+
+```
+const EXEC = {
+    ...
+    "🐎": ["EXEC_1", "EXEC_2", ...]
+    ...
+}
+```
+
 All coloring data and emoji data for each staff year, if you want to change it, can be found in `constants.js`
 
 Have fun!

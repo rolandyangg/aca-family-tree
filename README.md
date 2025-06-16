@@ -1,12 +1,44 @@
-# React + Vite
+# Association of Chinese Americans at UCLA Family Tree
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interactive family tree visualization for the Association of Chinese Americans at UCLA's Staff lines.
 
-Currently, two official plugins are available:
+Built using react-flow.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+![Dynasty View](dynasty_view.png)
+![Normal View](normal_view.png)
 
-## Expanding the ESLint configuration
+## Get Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+You may use the website normally https://aca-family-tree.vercel.app/
+
+To run it locally clone the repository
+```
+git clone https://github.com/rolandyangg/aca-family-tree.git
+```
+
+Install the necessary dependencies, then run a local server.
+```
+npm install
+npm run dev
+```
+
+## How To Modify
+
+All of the family data is stored in the file `data.js`
+
+Each staff year is in a different dictionary. Each dictionary is filled in the format
+```
+const YEAR = {
+    "STAFFER_1": ["KID_1", "KID_2", "KID_3", ...],
+    "STAFFER_2": [] // Had no kids that made it onto staff LOL
+    ...
+}
+```
+
+In order for the new year to be added, it must be appended to the end of the `DATA` array at the bottom of the file. The order of years in that array dictates the order they are outputted.
+
+All coloring data and emoji data for each staff year, if you want to change it, can be found in `constants.js`
+
+Have fun!
+
+- Roland Yang (Sponsorships Chair, Horse '25)

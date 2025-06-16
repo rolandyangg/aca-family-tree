@@ -313,7 +313,7 @@ const findFurthestParent = (name, checked = new Set()) => {
 // Create a mapping of dynasty roots to colors
 const createDynastyColorMap = () => {
   const colorMap = new Map();
-  let colorIndex = 0;
+  let colorIndex = 3;
 
   // First pass: find all root parents
   const rootParents = new Set();
@@ -542,6 +542,9 @@ const FamilyTree = () => {
         nodeTypes={nodeTypes}
         fitView
         nodesDraggable={true}
+        fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }}
+        minZoom={0.1}
+        maxZoom={2}
       >
         <Background />
         <Controls />

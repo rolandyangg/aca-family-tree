@@ -1,5 +1,5 @@
-import React from 'react';
-import { ReactFlow, Background, Controls, Handle, Position } from '@xyflow/react';
+import React, { useMemo } from 'react';
+import { ReactFlow, Background, Controls, Handle, Position, useNodesState, useEdgesState  } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 const NameNode = ({ data }) => {
@@ -61,16 +61,16 @@ const ROOSTER = {
   "Clifford Zhang": ["Donna Fang"],
   "Priscilla Wu": ["Emily Su"],
   "Daniel Go": ["Ianna Fong"],
-  "Doreen Chang": ["Charlie TTang"],
+  "Doreen Chang": ["Charlie Tang"],
   "Jing Huang": [],
-  "Jenny Huang": ["Lilly Lin"],
+  "Jenny Huang": ["Lilly Lin", "Thomas Xian"],
   "Alexander Ham": ["Jennifer Yip"],
   "Kevin Jin": ["Jennifer Yee"],
   "Jeremy Phan": ["Sydney Lim"]
 }
 
 const DOG = {
-  "Melody So": ["Carolin Jia", "Sean Huang"],
+  "Melody So": ["Carolin Jia", "Sean Haung"],
   "Iris Sun": [],
   "Ryan Young": ["Angela Chen", "Rachel Go", "Skylar Zhao"],
   "Audrey Zhang": [],
@@ -88,7 +88,7 @@ const DOG = {
 };
 
 const BOAR = {
-  "Sean Huang": [],
+  "Sean Haung": [],
   "Katherine Gan": ["Ashley Xu Park", "Bryant Yang"],
   "Angela Chen": ["Mary An Nan"],
   "Skylar Zhao": ["Susie Pan"],
@@ -195,7 +195,7 @@ const DRAGON = {
   "Bryson Xiao": ["Victoria Yee"],
   "Audrey Huang": ["Luisa Chen", "Alex Hoe", "Sadie Wong", "David Xu", "Robert Cui"],
   "Katie Lai": [],
-  "Tyler Ho": ["Ritchie Li", "Kaylee Huynh", "Jeffrey Liu", "Teanh Nguyen"],
+  "Tyler Ho": ["Ritchie Li", "Kaylee Huynh", "Jeffrey Liu", "Theanh Nguyen"],
   "Jolene Chan": [],
   "Jasmine Wei": ["Ella Liang"],
   "Janie Kuang": [],
@@ -222,7 +222,7 @@ const SNAKE = {
   "Ritchie Li": ["Jojo Wang", "Angela Huang"],
   "Kaylee Huynh": [],
   "Jeffrey Liu": ["Manda Cai", "Daniel Mastick"],
-  "Teanh Nguyen": ["Angelina Zou"],
+  "Theanh Nguyen": ["Angelina Zou"],
   "Ella Liang": ["Sophia Tan"],
   "Alyssa Cheung": [],
   "Madison (Maddie) Lee": ["Justine Li-Wu", "Richard Li"],
@@ -284,78 +284,72 @@ const zodiacColors = [
   "#F4A460"  // Horse - Sandy Brown
 ];
 
-const nodes = []
-const edges = []
+// const nodes = []
+// const edges = []
 
-// Add nodes
-// let i = 0;
-// let y = 0;
-// for (const year of DATA) {
-//   let x = 0;
-//   for (name in year) {
-//     nodes.push({ id: name, type: 'name', position: { x: x, y: y }, data: { label: name, bgColor: zodiacColors[i] } });
-//     x += 150;
-//   }
-//   y += 150;
-//   i += 1;
-// }
+// console.log(nodes);
+// console.log(edges);
 
-const xSpacing = 180;
-const ySpacing = 140;
+const FamilyTree = () => {
+  const { initialNodes, initialEdges } = useMemo(() => {
+    const nodes = [];
+    const edges = [];
+    const xSpacing = 180;
+    const ySpacing = 140;
 
-for (let level = 0; level < DATA.length; level++) {
-  const group = DATA[level];
-  const names = Object.keys(group);
-  const xOffset = (names.length * xSpacing) / 2;
+    for (let level = 0; level < DATA.length; level++) {
+      const group = DATA[level];
+      const names = Object.keys(group);
+      const xOffset = (names.length * xSpacing) / 2;
 
-  for (let i = 0; i < names.length; i++) {
-    const name = names[i];
-    nodes.push({
-      id: name,
-      type: 'name',
-      position: {
-        x: i * xSpacing - xOffset,
-        y: level * ySpacing,
-      },
-      data: {
-        label: `${name} ${zodiacEmojis[level]}`,
-        bgColor: zodiacColors[level],
+      for (let i = 0; i < names.length; i++) {
+        const name = names[i];
+        nodes.push({
+          id: name,
+          type: 'name',
+          position: { x: i * xSpacing - xOffset, y: level * ySpacing },
+          data: {
+            label: `${name} ${zodiacEmojis[level]}`,
+            bgColor: zodiacColors[level],
+          }
+        });
       }
-    });
-  }
-}
 
-// Add edges
-for (const year of DATA) {
-  for (const name in year) {
-    for (const child of year[name]) {
-      edges.push({ id: `${name}-${child}`, source: name, target: child, type: 'straight', style: { stroke: '#444', strokeWidth: 2 } });
+      for (const name in group) {
+        for (const child of group[name]) {
+          edges.push({ 
+            id: `${name}-${child}`, 
+            source: name, 
+            target: child, 
+            type: 'straight',
+            style: { strokeWidth: 2, stroke: '#666' }
+          });
+        }
+      }
     }
-  }
+
+    return { initialNodes: nodes, initialEdges: edges };
+  }, []);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  return (
+    <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        fitView
+        nodesDraggable={true}
+      >
+        <Background />
+        <Controls />
+      </ReactFlow>
+    </div>
+  );
 }
-
-console.log(nodes);
-console.log(edges);
-
-const FamilyTree = () => (
-  <div style={{ width: '100vw', height: '100vh', background: '#fff' }}>
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={nodeTypes}
-      fitView
-      nodesDraggable={false}
-      nodesConnectable={false}
-      elementsSelectable={false}
-      panOnDrag={true}
-      zoomOnScroll={true}
-      zoomOnPinch={true}
-      zoomOnDoubleClick={true}
-    >
-      <Background />
-      <Controls showInteractive={false} />
-    </ReactFlow>
-  </div>
-);
 
 export default FamilyTree; 

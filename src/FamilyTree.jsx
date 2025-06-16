@@ -361,7 +361,8 @@ const organizeNodesByDynasty = (nodes) => {
 };
 
 const FamilyTree = () => {
-  const [sortMode, setSortMode] = useState('default');
+  const [colorMode, setColorMode] = useState('year'); // 'year' or 'dynasty'
+  const [positionMode, setPositionMode] = useState('year'); // 'year' or 'dynasty'
 
   const { allRawNodes, allRawEdges } = useMemo(() => {
     const rawNodes = [];
@@ -404,74 +405,97 @@ const FamilyTree = () => {
 
     let newNodes = [];
 
-    // Group nodes by dynasty first, as this is the consistent grouping we want to maintain horizontal spacing for
-    const dynastyGroups = organizeNodesByDynasty(allRawNodes);
+    if (positionMode === 'dynasty') {
+      // Group nodes by dynasty first, as this is the consistent grouping we want to maintain horizontal spacing for
+      const dynastyGroups = organizeNodesByDynasty(allRawNodes);
 
-    let currentX = 0;
-    const dynastyHorizontalPositions = new Map(); // dynasty index -> { startX, width }
+      let currentX = 0;
+      const dynastyHorizontalPositions = new Map(); // dynasty index -> { startX, width }
 
-    // Calculate positions for each dynasty's overall block
-    dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
-      const yearCounts = new Map();
-      dynastyNodes.forEach(node => {
-        const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
-        yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
+      // Calculate positions for each dynasty's overall block
+      dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
+        const yearCounts = new Map();
+        dynastyNodes.forEach(node => {
+          const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
+          yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
+        });
+
+        const maxNodesInYear = Math.max(...Array.from(yearCounts.values()));
+        const dynastyWidth = maxNodesInYear * NODE_WIDTH; // Width based on widest year in dynasty
+
+        dynastyHorizontalPositions.set(dynastyIndex, {
+          startX: currentX,
+          width: dynastyWidth
+        });
+
+        currentX += dynastyWidth + MIN_SPACING_BETWEEN_DYNASTIES;
       });
 
-      const maxNodesInYear = Math.max(...Array.from(yearCounts.values()));
-      const dynastyWidth = maxNodesInYear * NODE_WIDTH; // Width based on widest year in dynasty
+      // Total width of all dynasties for centering
+      const totalContentWidth = currentX - MIN_SPACING_BETWEEN_DYNASTIES;
+      const centerOffset = totalContentWidth / 2;
 
-      dynastyHorizontalPositions.set(dynastyIndex, {
-        startX: currentX,
-        width: dynastyWidth
+      // Position all nodes based on the sort mode and pre-calculated dynasty positions
+      dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
+        const dynastyPos = dynastyHorizontalPositions.get(dynastyIndex);
+        const dynastyRoot = findFurthestParent(dynastyNodes[0].id); // Assuming first node in group represents the root
+
+        // Group nodes by year within this dynasty
+        const yearGroups = new Map();
+        dynastyNodes.forEach(node => {
+          const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
+          if (!yearGroups.has(year)) {
+            yearGroups.set(year, []);
+          }
+          yearGroups.get(year).push(node);
+        });
+
+        yearGroups.forEach((yearNodes, year) => {
+          const yearGroupWidth = yearNodes.length * NODE_WIDTH;
+          // Calculate offset to center the year group within its dynasty's allocated horizontal space
+          const centerOffsetWithinDynastyBlock = (dynastyPos.width - yearGroupWidth) / 2;
+
+          yearNodes.forEach((node, index) => {
+            newNodes.push({
+              ...node,
+              position: {
+                x: dynastyPos.startX + (index * NODE_WIDTH) + centerOffsetWithinDynastyBlock - centerOffset,
+                y: year * ySpacing
+              },
+              data: {
+                ...node.data,
+                bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(dynastyRoot) : zodiacColors[year]
+              }
+            });
+          });
+        });
       });
+    } else { // positionMode === 'year'
+      const xSpacing = 180; // Original default spacing
+      DATA.forEach((group, level) => {
+        const names = Object.keys(group);
+        const xOffset = (names.length * xSpacing) / 2;
 
-      currentX += dynastyWidth + MIN_SPACING_BETWEEN_DYNASTIES;
-    });
-
-    // Total width of all dynasties for centering
-    const totalContentWidth = currentX - MIN_SPACING_BETWEEN_DYNASTIES;
-    const centerOffset = totalContentWidth / 2;
-
-    // Position all nodes based on the sort mode and pre-calculated dynasty positions
-    dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
-      const dynastyPos = dynastyHorizontalPositions.get(dynastyIndex);
-      const dynastyRoot = findFurthestParent(dynastyNodes[0].id); // Assuming first node in group represents the root
-
-      // Group nodes by year within this dynasty
-      const yearGroups = new Map();
-      dynastyNodes.forEach(node => {
-        const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
-        if (!yearGroups.has(year)) {
-          yearGroups.set(year, []);
-        }
-        yearGroups.get(year).push(node);
-      });
-
-      yearGroups.forEach((yearNodes, year) => {
-        const yearGroupWidth = yearNodes.length * NODE_WIDTH;
-        // Calculate offset to center the year group within its dynasty's allocated horizontal space
-        const centerOffsetWithinDynastyBlock = (dynastyPos.width - yearGroupWidth) / 2;
-
-        yearNodes.forEach((node, index) => {
+        names.forEach((name, i) => {
+          const originalNode = allRawNodes.find(n => n.id === name); // Find the original node from allRawNodes
           newNodes.push({
-            ...node,
+            ...originalNode,
             position: {
-              x: dynastyPos.startX + (index * NODE_WIDTH) + centerOffsetWithinDynastyBlock - centerOffset,
-              y: year * ySpacing
+              x: i * xSpacing - xOffset,
+              y: level * ySpacing
             },
             data: {
-              ...node.data,
-              // This is the only part that changes based on sortMode
-              bgColor: sortMode === 'dynasty' ? dynastyColorMap.get(dynastyRoot) : zodiacColors[year]
+              ...originalNode.data,
+              label: `${name} ${zodiacEmojis[level]}`,
+              bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(name)) : zodiacColors[level]
             }
           });
         });
       });
-    });
+    }
 
     setNodes(newNodes);
-  }, [sortMode, allRawNodes]); // Dependencies: sortMode, allRawNodes. dynastyColorMap and zodiacColors are constants.
+  }, [positionMode, colorMode, allRawNodes]); // Dependencies: positionMode, colorMode, allRawNodes. dynastyColorMap and zodiacColors are constants.
 
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
@@ -484,7 +508,7 @@ const FamilyTree = () => {
         gap: '10px'
       }}>
         <button 
-          onClick={() => setSortMode(sortMode === 'default' ? 'dynasty' : 'default')}
+          onClick={() => setPositionMode(positionMode === 'year' ? 'dynasty' : 'year')}
           style={{
             padding: '8px 16px',
             backgroundColor: '#f0f0f0',
@@ -494,7 +518,20 @@ const FamilyTree = () => {
             color: '#000'
           }}
         >
-          {sortMode === 'default' ? 'Show by Dynasty' : 'Show by Year'}
+          {positionMode === 'year' ? 'Position by Dynasty' : 'Position by Year'}
+        </button>
+        <button 
+          onClick={() => setColorMode(colorMode === 'year' ? 'dynasty' : 'year')}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#f0f0f0',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: '#000'
+          }}
+        >
+          {colorMode === 'year' ? 'Color by Dynasty' : 'Color by Year'}
         </button>
       </div>
       <ReactFlow

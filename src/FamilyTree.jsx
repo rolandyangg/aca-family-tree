@@ -39,7 +39,7 @@ const nodeTypes = {
 // Data Format: "NAME": ["CHILDREN"]
 const RAM = {
   "Brandon Judo": ["Maggie Shi", "Jing Wang"],
-  "Alana Yip": ["Kristen Liu", "Yee Chau"]
+  "Alana Yip": ["Kristen Liu", "Rochelle Yee", "Michael Dao", "Yee Chau"]
 }
 
 const MONKEY = {
@@ -164,7 +164,7 @@ const TIGER = {
   "Scarlet Yang": [],
   "Janet Louie": ["Alyssa Cheung", "Kayla Liu"],
   "Victor Xie": ["YaQi (Andy) Liu", "Sharii Liang", "Melody Yuan"],
-  "Grace Deng": ["Jessica Li", "Madison Yee", "Morgan Oey", "Katherine Wang"]
+  "Grace Deng": ["Jessica Li", "Madison Yee", "Morgan Oey"]
 }
 
 const RABBIT = {
@@ -336,6 +336,30 @@ const createDynastyColorMap = () => {
 
 const dynastyColorMap = createDynastyColorMap();
 
+// Function to organize nodes by dynasty and year
+const organizeNodesByDynasty = (nodes) => {
+  // Group nodes by dynasty
+  const dynastyGroups = new Map();
+  nodes.forEach(node => {
+    const root = findFurthestParent(node.id);
+    if (!dynastyGroups.has(root)) {
+      dynastyGroups.set(root, []);
+    }
+    dynastyGroups.get(root).push(node);
+  });
+
+  // Sort nodes within each dynasty by year
+  dynastyGroups.forEach(nodes => {
+    nodes.sort((a, b) => {
+      const aYear = DATA.findIndex(group => Object.keys(group).includes(a.id));
+      const bYear = DATA.findIndex(group => Object.keys(group).includes(b.id));
+      return aYear - bYear;
+    });
+  });
+
+  return Array.from(dynastyGroups.values());
+};
+
 const FamilyTree = () => {
   const [sortMode, setSortMode] = useState('default');
 
@@ -385,17 +409,107 @@ const FamilyTree = () => {
 
   // Update nodes and edges when sort mode changes
   React.useEffect(() => {
-    const newNodes = nodes.map(node => {
-      const root = findFurthestParent(node.id);
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          bgColor: sortMode === 'dynasty' ? dynastyColorMap.get(root) : zodiacColors[DATA.findIndex(group => Object.keys(group).includes(node.id))],
-        }
-      };
-    });
-    setNodes(newNodes);
+    if (sortMode === 'dynasty') {
+      const dynastyGroups = organizeNodesByDynasty(nodes);
+      const xSpacing = 180;
+      const ySpacing = 140;
+      const newNodes = [];
+
+      // Position each dynasty group
+      const NODE_WIDTH = 150; // Fixed width for each node
+      const MIN_SPACING = 50; // Minimum space between nodes
+      let currentX = 0;
+
+      // First, organize nodes by dynasty and year
+      const dynastyPositions = new Map(); // dynasty -> {startX, width}
+      
+      // Calculate positions for each dynasty
+      dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
+        // Find the maximum number of nodes in any year for this dynasty
+        const yearCounts = new Map();
+        dynastyNodes.forEach(node => {
+          const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
+          yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
+        });
+        
+        const maxNodesInYear = Math.max(...Array.from(yearCounts.values()));
+        const width = maxNodesInYear * NODE_WIDTH;
+        
+        dynastyPositions.set(dynastyIndex, {
+          startX: currentX,
+          width: width
+        });
+        
+        currentX += width + MIN_SPACING;
+      });
+
+      // Position all nodes
+      dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
+        const pos = dynastyPositions.get(dynastyIndex);
+        
+        // Group nodes by year
+        const yearGroups = new Map();
+        dynastyNodes.forEach(node => {
+          const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
+          if (!yearGroups.has(year)) {
+            yearGroups.set(year, []);
+          }
+          yearGroups.get(year).push(node);
+        });
+
+        // Position nodes within each year
+        yearGroups.forEach((yearNodes, year) => {
+          const yearWidth = yearNodes.length * NODE_WIDTH;
+          const yearXOffset = yearWidth / 2;
+
+          yearNodes.forEach((node, index) => {
+            const root = findFurthestParent(node.id);
+            
+            newNodes.push({
+              ...node,
+              position: {
+                x: pos.startX + (index * NODE_WIDTH - yearXOffset),
+                y: year * ySpacing
+              },
+              data: {
+                ...node.data,
+                bgColor: dynastyColorMap.get(root)
+              }
+            });
+          });
+        });
+      });
+
+      // Center all nodes as a group
+      const totalWidth = currentX - MIN_SPACING;
+      const centerOffset = totalWidth / 2;
+      newNodes.forEach(node => {
+        node.position.x -= centerOffset;
+      });
+
+      setNodes(newNodes);
+    } else {
+      // Reset to original positions
+      const newNodes = nodes.map(node => {
+        const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
+        const names = Object.keys(DATA[year]);
+        const xOffset = (names.length * 180) / 2;
+        const xIndex = names.indexOf(node.id);
+        
+        return {
+          ...node,
+          position: {
+            x: xIndex * 180 - xOffset,
+            y: year * 140
+          },
+          data: {
+            ...node.data,
+            bgColor: zodiacColors[year]
+          }
+        };
+      });
+      setNodes(newNodes);
+    }
   }, [sortMode]);
 
   return (

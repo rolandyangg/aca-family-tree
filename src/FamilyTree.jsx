@@ -363,154 +363,115 @@ const organizeNodesByDynasty = (nodes) => {
 const FamilyTree = () => {
   const [sortMode, setSortMode] = useState('default');
 
-  const { initialNodes, initialEdges } = useMemo(() => {
-    const nodes = [];
-    const edges = [];
-    const xSpacing = 180;
-    const ySpacing = 140;
+  const { allRawNodes, allRawEdges } = useMemo(() => {
+    const rawNodes = [];
+    const rawEdges = [];
 
     for (let level = 0; level < DATA.length; level++) {
       const group = DATA[level];
-      const names = Object.keys(group);
-      const xOffset = (names.length * xSpacing) / 2;
-
-      for (let i = 0; i < names.length; i++) {
-        const name = names[i];
-        const root = findFurthestParent(name);
-        nodes.push({
+      for (const name in group) {
+        rawNodes.push({
           id: name,
           type: 'name',
-          position: { x: i * xSpacing - xOffset, y: level * ySpacing },
+          // Position and bgColor will be set in useEffect
           data: {
             label: `${name} ${zodiacEmojis[level]}`,
-            bgColor: sortMode === 'dynasty' ? dynastyColorMap.get(root) : zodiacColors[level],
           }
         });
-      }
 
-      for (const name in group) {
         for (const child of group[name]) {
-          edges.push({ 
-            id: `${name}-${child}`, 
-            source: name, 
-            target: child, 
+          rawEdges.push({
+            id: `${name}-${child}`,
+            source: name,
+            target: child,
             type: 'straight',
             style: { strokeWidth: 2, stroke: '#666' }
           });
         }
       }
     }
+    return { allRawNodes: rawNodes, allRawEdges: rawEdges };
+  }, []); // No dependencies, runs once
 
-    return { initialNodes: nodes, initialEdges: edges };
-  }, [sortMode]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(allRawEdges);
 
   // Update nodes and edges when sort mode changes
   React.useEffect(() => {
-    if (sortMode === 'dynasty') {
-      const dynastyGroups = organizeNodesByDynasty(nodes);
-      const xSpacing = 180;
-      const ySpacing = 140;
-      const newNodes = [];
+    const ySpacing = 140;
+    const NODE_WIDTH = 180; // Fixed width for each node, increased for more spacing
+    const MIN_SPACING_BETWEEN_DYNASTIES = 30; // Minimum space between dynasties, increased for more spacing
 
-      // Position each dynasty group
-      const NODE_WIDTH = 150; // Fixed width for each node
-      const MIN_SPACING = 50; // Minimum space between nodes
-      let currentX = 0;
+    let newNodes = [];
 
-      // First, organize nodes by dynasty and year
-      const dynastyPositions = new Map(); // dynasty -> {startX, width}
-      
-      // Calculate positions for each dynasty
-      dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
-        // Find the maximum number of nodes in any year for this dynasty
-        const yearCounts = new Map();
-        dynastyNodes.forEach(node => {
-          const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
-          yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
-        });
-        
-        const maxNodesInYear = Math.max(...Array.from(yearCounts.values()));
-        const width = maxNodesInYear * NODE_WIDTH;
-        
-        dynastyPositions.set(dynastyIndex, {
-          startX: currentX,
-          width: width
-        });
-        
-        currentX += width + MIN_SPACING;
+    // Group nodes by dynasty first, as this is the consistent grouping we want to maintain horizontal spacing for
+    const dynastyGroups = organizeNodesByDynasty(allRawNodes);
+
+    let currentX = 0;
+    const dynastyHorizontalPositions = new Map(); // dynasty index -> { startX, width }
+
+    // Calculate positions for each dynasty's overall block
+    dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
+      const yearCounts = new Map();
+      dynastyNodes.forEach(node => {
+        const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
+        yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
       });
 
-      // Position all nodes
-      dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
-        const pos = dynastyPositions.get(dynastyIndex);
-        
-        // Group nodes by year
-        const yearGroups = new Map();
-        dynastyNodes.forEach(node => {
-          const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
-          if (!yearGroups.has(year)) {
-            yearGroups.set(year, []);
-          }
-          yearGroups.get(year).push(node);
-        });
+      const maxNodesInYear = Math.max(...Array.from(yearCounts.values()));
+      const dynastyWidth = maxNodesInYear * NODE_WIDTH; // Width based on widest year in dynasty
 
-        // Position nodes within each year
-        yearGroups.forEach((yearNodes, year) => {
-          const yearWidth = yearNodes.length * NODE_WIDTH;
-          const yearXOffset = yearWidth / 2;
+      dynastyHorizontalPositions.set(dynastyIndex, {
+        startX: currentX,
+        width: dynastyWidth
+      });
 
-          yearNodes.forEach((node, index) => {
-            const root = findFurthestParent(node.id);
-            
-            newNodes.push({
-              ...node,
-              position: {
-                x: pos.startX + (index * NODE_WIDTH - yearXOffset),
-                y: year * ySpacing
-              },
-              data: {
-                ...node.data,
-                bgColor: dynastyColorMap.get(root)
-              }
-            });
+      currentX += dynastyWidth + MIN_SPACING_BETWEEN_DYNASTIES;
+    });
+
+    // Total width of all dynasties for centering
+    const totalContentWidth = currentX - MIN_SPACING_BETWEEN_DYNASTIES;
+    const centerOffset = totalContentWidth / 2;
+
+    // Position all nodes based on the sort mode and pre-calculated dynasty positions
+    dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
+      const dynastyPos = dynastyHorizontalPositions.get(dynastyIndex);
+      const dynastyRoot = findFurthestParent(dynastyNodes[0].id); // Assuming first node in group represents the root
+
+      // Group nodes by year within this dynasty
+      const yearGroups = new Map();
+      dynastyNodes.forEach(node => {
+        const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
+        if (!yearGroups.has(year)) {
+          yearGroups.set(year, []);
+        }
+        yearGroups.get(year).push(node);
+      });
+
+      yearGroups.forEach((yearNodes, year) => {
+        const yearGroupWidth = yearNodes.length * NODE_WIDTH;
+        // Calculate offset to center the year group within its dynasty's allocated horizontal space
+        const centerOffsetWithinDynastyBlock = (dynastyPos.width - yearGroupWidth) / 2;
+
+        yearNodes.forEach((node, index) => {
+          newNodes.push({
+            ...node,
+            position: {
+              x: dynastyPos.startX + (index * NODE_WIDTH) + centerOffsetWithinDynastyBlock - centerOffset,
+              y: year * ySpacing
+            },
+            data: {
+              ...node.data,
+              // This is the only part that changes based on sortMode
+              bgColor: sortMode === 'dynasty' ? dynastyColorMap.get(dynastyRoot) : zodiacColors[year]
+            }
           });
         });
       });
+    });
 
-      // Center all nodes as a group
-      const totalWidth = currentX - MIN_SPACING;
-      const centerOffset = totalWidth / 2;
-      newNodes.forEach(node => {
-        node.position.x -= centerOffset;
-      });
-
-      setNodes(newNodes);
-    } else {
-      // Reset to original positions
-      const newNodes = nodes.map(node => {
-        const year = DATA.findIndex(group => Object.keys(group).includes(node.id));
-        const names = Object.keys(DATA[year]);
-        const xOffset = (names.length * 180) / 2;
-        const xIndex = names.indexOf(node.id);
-        
-        return {
-          ...node,
-          position: {
-            x: xIndex * 180 - xOffset,
-            y: year * 140
-          },
-          data: {
-            ...node.data,
-            bgColor: zodiacColors[year]
-          }
-        };
-      });
-      setNodes(newNodes);
-    }
-  }, [sortMode]);
+    setNodes(newNodes);
+  }, [sortMode, allRawNodes]); // Dependencies: sortMode, allRawNodes. dynastyColorMap and zodiacColors are constants.
 
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>

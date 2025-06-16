@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ReactFlow, Background, Controls, Handle, Position, useNodesState, useEdgesState  } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -43,7 +43,7 @@ const RAM = {
 }
 
 const MONKEY = {
-  "Maggie Shi": ["Vivian Liu"],
+  "Maggie Shi": ["Vivian Liu", "Katherine Gan"],
   "Jing Wang": ["Sirena Liu", "Ryan Young"],
   "Anna Tao": ["Michael Chen"],
   "Kristen Liu": [],
@@ -75,7 +75,7 @@ const DOG = {
   "Ryan Young": ["Angela Chen", "Rachel Go", "Skylar Zhao"],
   "Audrey Zhang": [],
   "Michelle She": [],
-  "Liana Chie": ["Ryan Chen"],
+  "Liana Chie": ["Charlene Kwan", "Ryan Chen", "Sydney Tay"],
   "Nerissa Low": [],
   "Donna Fang": [],
   "Emily Su": ["Esmy Xu", "Daniel Li", "David Li"],
@@ -96,7 +96,7 @@ const BOAR = {
   "Calena Ang": [],
   "Henry Cao": ["William Xu", "Kenny Chang"],
   "Esmy Xu": [],
-  "Daniel Li": ["Robin Reyes", "Alana Wang"],
+  "Daniel Li": ["Robin Reyes", "Alana Wang", "Vivian Wong"],
   "David Li": ["Raymond Phan"],
   "Kevin Tai": ["Kevin Lin"],
   "Wayland Leung": ["Jessie Ri"],
@@ -207,7 +207,7 @@ const DRAGON = {
   "Lily Mcleod": [],
   "Chloe Thean": [],
   "Ryan Quan": [],
-  "Selana Yu": []
+  "Selena Yu": []
 }
 
 const SNAKE = {
@@ -290,7 +290,55 @@ const zodiacColors = [
 // console.log(nodes);
 // console.log(edges);
 
+// Function to find the furthest back parent
+const findFurthestParent = (name, checked = new Set()) => {
+  if (checked.has(name)) return name;
+  checked.add(name);
+
+  // Search through all generations
+  for (let i = 0; i < DATA.length; i++) {
+    const generation = DATA[i];
+    for (const parent in generation) {
+      if (generation[parent].includes(name)) {
+        // If we find a parent, recursively check if they have a parent
+        return findFurthestParent(parent, checked);
+      }
+    }
+  }
+
+  // If no parent is found, this is the furthest back parent
+  return name;
+};
+
+// Create a mapping of dynasty roots to colors
+const createDynastyColorMap = () => {
+  const colorMap = new Map();
+  let colorIndex = 0;
+
+  // First pass: find all root parents
+  const rootParents = new Set();
+  for (let i = 0; i < DATA.length; i++) {
+    const generation = DATA[i];
+    for (const name in generation) {
+      const root = findFurthestParent(name);
+      rootParents.add(root);
+    }
+  }
+
+  // Second pass: assign colors to each root parent
+  rootParents.forEach(root => {
+    colorMap.set(root, zodiacColors[colorIndex % zodiacColors.length]);
+    colorIndex++;
+  });
+
+  return colorMap;
+};
+
+const dynastyColorMap = createDynastyColorMap();
+
 const FamilyTree = () => {
+  const [sortMode, setSortMode] = useState('default');
+
   const { initialNodes, initialEdges } = useMemo(() => {
     const nodes = [];
     const edges = [];
@@ -304,13 +352,14 @@ const FamilyTree = () => {
 
       for (let i = 0; i < names.length; i++) {
         const name = names[i];
+        const root = findFurthestParent(name);
         nodes.push({
           id: name,
           type: 'name',
           position: { x: i * xSpacing - xOffset, y: level * ySpacing },
           data: {
             label: `${name} ${zodiacEmojis[level]}`,
-            bgColor: zodiacColors[level],
+            bgColor: sortMode === 'dynasty' ? dynastyColorMap.get(root) : zodiacColors[level],
           }
         });
       }
@@ -329,13 +378,50 @@ const FamilyTree = () => {
     }
 
     return { initialNodes: nodes, initialEdges: edges };
-  }, []);
+  }, [sortMode]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  // Update nodes and edges when sort mode changes
+  React.useEffect(() => {
+    const newNodes = nodes.map(node => {
+      const root = findFurthestParent(node.id);
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          bgColor: sortMode === 'dynasty' ? dynastyColorMap.get(root) : zodiacColors[DATA.findIndex(group => Object.keys(group).includes(node.id))],
+        }
+      };
+    });
+    setNodes(newNodes);
+  }, [sortMode]);
+
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
+      <div style={{ 
+        position: 'absolute', 
+        top: 10, 
+        right: 10, 
+        zIndex: 5,
+        display: 'flex',
+        gap: '10px'
+      }}>
+        <button 
+          onClick={() => setSortMode(sortMode === 'default' ? 'dynasty' : 'default')}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#f0f0f0',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: '#000'
+          }}
+        >
+          {sortMode === 'default' ? 'Show by Dynasty' : 'Show by Year'}
+        </button>
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}

@@ -301,7 +301,7 @@ const edges = []
 // }
 
 const xSpacing = 180;
-const ySpacing = 120;
+const ySpacing = 140;
 
 for (let level = 0; level < DATA.length; level++) {
   const group = DATA[level];
@@ -329,7 +329,7 @@ for (let level = 0; level < DATA.length; level++) {
 for (const year of DATA) {
   for (const name in year) {
     for (const child of year[name]) {
-      edges.push({ id: `${name}-${child}`, source: name, target: child, style: { stroke: '#444', strokeWidth: 2 } });
+      edges.push({ id: `${name}-${child}`, source: name, target: child, type: 'straight', style: { stroke: '#444', strokeWidth: 2 } });
     }
   }
 }

@@ -218,5 +218,21 @@ const HORSE = {
   "Nicklaus Chui": []
 }
 
+const EXEC = {
+  "🐐": ["Jessica Wong", "Avery Hua", "Eileen The", "Brandon Shih"],
+  "🐒": ["Sienna Tsan", "Dermot Nguyen", "Annie Jiang", "Amy Wong"],
+  "🐓": ["David Wright", "Jing Wang", "Dan Sui"],
+  "🐕": ["Michael Dao", "Jenny Huang", "Jeremy Phan"],
+  "🐖": ["Liana Chie", "Nerissa Low", "Emily Su", "Ianna Fong"],
+  "🐀": ["Thomas Xian", "Henry Cao", "Ryan Young"],
+  "🐂": ["Sydney Tay", "Bryant Yang", "Alyssa Zhu", "Robin Reyes"],
+  "🐅": ["Serena Lee", "Cissy Huang", "Pauline Young", "Michelle Chan"],
+  "🐇": ["Victor Xie", "Madeline Zhang", "Grace Deng", "Alex Pun"],
+  "🐉": ["Morgan Oey", "Andrew Nguyen", "Sophia Zhao"],
+  "🐍": ["Jessica Li", "Jolene Chan", "Tyler Ho", "Audrey Huang"],
+  "🐎": ["David Xu", "Kaylee Huynh", "Ritchie Lee", "Luisa Chen"]
+}
+
 const DATA =  [RAM, MONKEY, ROOSTER, DOG, BOAR, RAT, OX, TIGER, RABBIT, DRAGON, SNAKE, HORSE];
+export { EXEC };
 export default DATA;

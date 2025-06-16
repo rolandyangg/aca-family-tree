@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ReactFlow, Background, Controls, Handle, Position, useNodesState, useEdgesState  } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import DATA from "./data"
+import DATA, { EXEC } from "./data"
 import { zodiacColors, zodiacEmojis } from './constants';
 
 const NameNode = ({ data }) => {
@@ -107,6 +107,15 @@ const organizeNodesByDynasty = (nodes) => {
   return Array.from(dynastyGroups.values());
 };
 
+function getZodiacEmoji(name) {
+  for (const emoji in EXEC) {
+    if (EXEC[emoji].includes(name)) {
+      return emoji;
+    }
+  }
+  return '';
+}
+
 const FamilyTree = () => {
   const [colorMode, setColorMode] = useState('year'); // 'year' or 'dynasty'
   const [positionMode, setPositionMode] = useState('year'); // 'year' or 'dynasty'
@@ -123,7 +132,7 @@ const FamilyTree = () => {
           type: 'name',
           // Position and bgColor will be set in useEffect
           data: {
-            label: `${name} ${zodiacEmojis[level]}`,
+            label: `${name} ${zodiacEmojis[level]}${getZodiacEmoji(name)}`,
           }
         });
 
@@ -233,7 +242,7 @@ const FamilyTree = () => {
             },
             data: {
               ...originalNode.data,
-              label: `${name} ${zodiacEmojis[level]}`,
+              label: `${name} ${zodiacEmojis[level]}${getZodiacEmoji(name)}`,
               bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(name)) : zodiacColors[level]
             }
           });

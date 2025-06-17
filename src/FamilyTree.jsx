@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ReactFlow, Background, Controls, Handle, Position, useNodesState, useEdgesState  } from '@xyflow/react';
+import React, { useMemo, useState, useCallback } from 'react';
+import { ReactFlow, Background, Controls, Handle, Position, useNodesState, useEdgesState, useReactFlow, ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import DATA, { EXEC } from "./data"
 import { zodiacColors, zodiacEmojis } from './constants';
@@ -116,10 +116,13 @@ function getZodiacEmoji(name) {
   return '';
 }
 
-const FamilyTree = () => {
-  const [colorMode, setColorMode] = useState('year'); // 'year' or 'dynasty'
-  // Modes: 'default' (tidy tree), 'dynasty' (condensed dynasty), 'year' (original by year)
+// Create a new inner component that uses useReactFlow
+const FamilyTreeInner = () => {
+  const [colorMode, setColorMode] = useState('year');
   const [positionMode, setPositionMode] = useState('default');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const { fitView } = useReactFlow();
 
   const { allRawNodes, allRawEdges } = useMemo(() => {
     const rawNodes = [];
@@ -131,7 +134,6 @@ const FamilyTree = () => {
         rawNodes.push({
           id: name,
           type: 'name',
-          // Position and bgColor will be set in useEffect
           data: {
             label: `${name} ${zodiacEmojis[level]}${getZodiacEmoji(name)}`,
           }
@@ -149,7 +151,7 @@ const FamilyTree = () => {
       }
     }
     return { allRawNodes: rawNodes, allRawEdges: rawEdges };
-  }, []); // No dependencies, runs once
+  }, []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(allRawEdges);
@@ -338,8 +340,127 @@ const FamilyTree = () => {
     setNodes(newNodes);
   }, [positionMode, colorMode, allRawNodes]); // Dependencies: positionMode, colorMode, allRawNodes. dynastyColorMap and zodiacColors are constants.
 
+  // Add search functionality
+  const matchingNodes = useMemo(() => {
+    if (!searchQuery) return [];
+    const query = searchQuery.toLowerCase();
+    return nodes.filter(node => 
+      node.id.toLowerCase().includes(query)
+    );
+  }, [nodes, searchQuery]);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentSearchIndex(0);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (!matchingNodes.length) return;
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextIndex = (currentSearchIndex + 1) % matchingNodes.length;
+      setCurrentSearchIndex(nextIndex);
+      const node = matchingNodes[nextIndex];
+      fitView({ nodes: [node], duration: 800, padding: 0.2 });
+    }
+  };
+
+  const cycleSearchResult = (direction) => {
+    if (!matchingNodes.length) return;
+    
+    const newIndex = direction === 'up' 
+      ? (currentSearchIndex - 1 + matchingNodes.length) % matchingNodes.length
+      : (currentSearchIndex + 1) % matchingNodes.length;
+    
+    setCurrentSearchIndex(newIndex);
+    const node = matchingNodes[newIndex];
+    fitView({ nodes: [node], duration: 800, padding: 0.2 });
+  };
+
+  // Update node styles based on search
+  const nodesWithSearchHighlight = useMemo(() => {
+    return nodes.map(node => {
+      const isMatch = matchingNodes.includes(node);
+      const isCurrentMatch = isMatch && node === matchingNodes[currentSearchIndex];
+      
+      return {
+        ...node,
+        style: {
+          ...node.style,
+          border: isCurrentMatch ? '4px solid #ff0000' : isMatch ? '3px solid #ff6666' : undefined,
+          boxShadow: isCurrentMatch ? '0 0 10px rgba(255, 0, 0, 0.7)' : undefined,
+        }
+      };
+    });
+  }, [nodes, matchingNodes, currentSearchIndex]);
+
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
+      {/* Search bar */}
+      <div style={{
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        zIndex: 5,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        backgroundColor: 'white',
+        padding: '8px',
+        borderRadius: '4px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={handleSearchChange}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="Search names..."
+          style={{
+            padding: '8px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            width: '200px'
+          }}
+        />
+        {matchingNodes.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              onClick={() => cycleSearchResult('up')}
+              style={{
+                padding: '4px 8px',
+                backgroundColor: '#f0f0f0',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                color: '#000',
+                fontSize: '14px'
+              }}
+            >
+              ↑
+            </button>
+            <span style={{ color: '#666' }}>
+              {currentSearchIndex + 1} of {matchingNodes.length}
+            </span>
+            <button
+              onClick={() => cycleSearchResult('down')}
+              style={{
+                padding: '4px 8px',
+                backgroundColor: '#f0f0f0',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                color: '#000',
+                fontSize: '14px'
+              }}
+            >
+              ↓
+            </button>
+          </div>
+        )}
+      </div>
+
       <div style={{ 
         position: 'absolute', 
         top: 10, 
@@ -419,7 +540,7 @@ const FamilyTree = () => {
         </button>
       </div>
       <ReactFlow
-        nodes={nodes}
+        nodes={nodesWithSearchHighlight}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -435,6 +556,15 @@ const FamilyTree = () => {
       </ReactFlow>
     </div>
   );
-}
+};
+
+// Main component that provides the ReactFlowProvider
+const FamilyTree = () => {
+  return (
+    <ReactFlowProvider>
+      <FamilyTreeInner />
+    </ReactFlowProvider>
+  );
+};
 
 export default FamilyTree; 

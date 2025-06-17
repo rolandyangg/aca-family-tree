@@ -118,7 +118,8 @@ function getZodiacEmoji(name) {
 
 const FamilyTree = () => {
   const [colorMode, setColorMode] = useState('year'); // 'year' or 'dynasty'
-  const [positionMode, setPositionMode] = useState('year'); // 'year' or 'dynasty'
+  // Modes: 'default' (tidy tree), 'dynasty' (condensed dynasty), 'year' (original by year)
+  const [positionMode, setPositionMode] = useState('default');
 
   const { allRawNodes, allRawEdges } = useMemo(() => {
     const rawNodes = [];
@@ -226,7 +227,30 @@ const FamilyTree = () => {
           });
         });
       });
-    } else { // positionMode === 'year'
+    } else if (positionMode === 'year') {
+      // Restore the original year-based layout (before any changes)
+      const xSpacing = 180; // Original default spacing
+      DATA.forEach((group, level) => {
+        const names = Object.keys(group);
+        const xOffset = (names.length * xSpacing) / 2;
+        names.forEach((name, i) => {
+          const originalNode = allRawNodes.find(n => n.id === name); // Find the original node from allRawNodes
+          newNodes.push({
+            ...originalNode,
+            position: {
+              x: i * xSpacing - xOffset,
+              y: level * ySpacing
+            },
+            data: {
+              ...originalNode.data,
+              label: `${name} ${zodiacEmojis[level]}${getZodiacEmoji(name)}`,
+              bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(name)) : zodiacColors[level]
+            }
+          });
+        });
+      });
+    } else { // positionMode === 'default'
+      // Tidy tree layout (the new default)
       const xSpacing = 180; // Base spacing between nodes
       const ySpacing = 140;
       let nextX = 0;
@@ -324,31 +348,74 @@ const FamilyTree = () => {
         display: 'flex',
         gap: '10px'
       }}>
+        {/* Positioning buttons */}
         <button 
-          onClick={() => setPositionMode(positionMode === 'year' ? 'dynasty' : 'year')}
+          onClick={() => setPositionMode('default')}
           style={{
             padding: '8px 16px',
-            backgroundColor: '#f0f0f0',
+            backgroundColor: positionMode === 'default' ? '#d0eaff' : '#f0f0f0',
             border: '1px solid #ccc',
             borderRadius: '4px',
             cursor: 'pointer',
             color: '#000'
           }}
         >
-          {positionMode === 'year' ? 'Position by Dynasty' : 'Position by Year'}
+          Default
         </button>
         <button 
-          onClick={() => setColorMode(colorMode === 'year' ? 'dynasty' : 'year')}
+          onClick={() => setPositionMode('dynasty')}
           style={{
             padding: '8px 16px',
-            backgroundColor: '#f0f0f0',
+            backgroundColor: positionMode === 'dynasty' ? '#d0eaff' : '#f0f0f0',
             border: '1px solid #ccc',
             borderRadius: '4px',
             cursor: 'pointer',
             color: '#000'
           }}
         >
-          {colorMode === 'year' ? 'Color by Dynasty' : 'Color by Year'}
+          Condensed Dynasty
+        </button>
+        <button 
+          onClick={() => setPositionMode('year')}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: positionMode === 'year' ? '#d0eaff' : '#f0f0f0',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: '#000'
+          }}
+        >
+          Year
+        </button>
+        {/* Divider for visual separation */}
+        <div style={{ width: '2px', background: '#ccc', margin: '0 10px' }} />
+        {/* Coloring buttons */}
+        <button 
+          onClick={() => setColorMode('year')}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: colorMode === 'year' ? '#d0eaff' : '#f0f0f0',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: '#000'
+          }}
+        >
+          Color by Year
+        </button>
+        <button 
+          onClick={() => setColorMode('dynasty')}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: colorMode === 'dynasty' ? '#d0eaff' : '#f0f0f0',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: '#000'
+          }}
+        >
+          Color by Dynasty
         </button>
       </div>
       <ReactFlow

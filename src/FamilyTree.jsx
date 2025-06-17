@@ -122,6 +122,7 @@ const FamilyTreeInner = () => {
   const [positionMode, setPositionMode] = useState('default');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
   const { fitView } = useReactFlow();
 
   const { allRawNodes, allRawEdges } = useMemo(() => {
@@ -397,148 +398,213 @@ const FamilyTreeInner = () => {
 
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
-      {/* Search bar */}
+      {/* Controls container */}
       <div style={{
         position: 'absolute',
         top: 10,
-        left: 10,
+        left: '50%',
+        transform: 'translateX(-50%)',
         zIndex: 5,
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
         gap: '8px',
-        backgroundColor: 'white',
         padding: '8px',
+        backgroundColor: 'white',
         borderRadius: '4px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        width: 'min(90vw, 400px)',
+        boxSizing: 'border-box'
       }}>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Search names..."
+        {/* Search bar - always visible */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          width: '100%'
+        }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search names..."
+            style={{
+              padding: '6px 8px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              width: '100%',
+              boxSizing: 'border-box'
+            }}
+          />
+          {matchingNodes.length > 0 && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '4px', 
+              flexWrap: 'nowrap',
+              width: '100%',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={() => cycleSearchResult('up')}
+                style={{
+                  padding: '6px 10px',
+                  backgroundColor: '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  fontSize: '14px',
+                  minWidth: '36px'
+                }}
+              >
+                ↑
+              </button>
+              <span style={{ color: '#666', whiteSpace: 'nowrap', fontSize: '14px' }}>
+                {currentSearchIndex + 1} of {matchingNodes.length}
+              </span>
+              <button
+                onClick={() => cycleSearchResult('down')}
+                style={{
+                  padding: '6px 10px',
+                  backgroundColor: '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  fontSize: '14px',
+                  minWidth: '36px'
+                }}
+              >
+                ↓
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Expand/Collapse button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
           style={{
-            padding: '8px',
+            padding: '6px 12px',
+            backgroundColor: '#f0f0f0',
             border: '1px solid #ccc',
             borderRadius: '4px',
-            width: '200px'
+            cursor: 'pointer',
+            color: '#000',
+            fontSize: '14px',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px'
           }}
-        />
-        {matchingNodes.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <button
-              onClick={() => cycleSearchResult('up')}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: '#f0f0f0',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: '#000',
-                fontSize: '14px'
-              }}
-            >
-              ↑
-            </button>
-            <span style={{ color: '#666' }}>
-              {currentSearchIndex + 1} of {matchingNodes.length}
-            </span>
-            <button
-              onClick={() => cycleSearchResult('down')}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: '#f0f0f0',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: '#000',
-                fontSize: '14px'
-              }}
-            >
-              ↓
-            </button>
+        >
+          {isExpanded ? 'Hide Options' : 'Show Options'}
+          <span style={{ fontSize: '12px' }}>{isExpanded ? '▲' : '▼'}</span>
+        </button>
+
+        {/* View controls - collapsible */}
+        {isExpanded && (
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '8px',
+            border: '1px solid #eee',
+            borderRadius: '4px',
+            backgroundColor: '#fafafa',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            {/* Positioning buttons */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setPositionMode('default')}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: positionMode === 'default' ? '#d0eaff' : '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  whiteSpace: 'nowrap',
+                  fontSize: '14px'
+                }}
+              >
+                Default
+              </button>
+              <button 
+                onClick={() => setPositionMode('dynasty')}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: positionMode === 'dynasty' ? '#d0eaff' : '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  whiteSpace: 'nowrap',
+                  fontSize: '14px'
+                }}
+              >
+                Condensed Dynasty
+              </button>
+              <button 
+                onClick={() => setPositionMode('year')}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: positionMode === 'year' ? '#d0eaff' : '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  whiteSpace: 'nowrap',
+                  fontSize: '14px'
+                }}
+              >
+                Year
+              </button>
+            </div>
+
+            {/* Coloring buttons */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setColorMode('year')}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: colorMode === 'year' ? '#d0eaff' : '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  whiteSpace: 'nowrap',
+                  fontSize: '14px'
+                }}
+              >
+                Color by Year
+              </button>
+              <button 
+                onClick={() => setColorMode('dynasty')}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: colorMode === 'dynasty' ? '#d0eaff' : '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  whiteSpace: 'nowrap',
+                  fontSize: '14px'
+                }}
+              >
+                Color by Dynasty
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      <div style={{ 
-        position: 'absolute', 
-        top: 10, 
-        right: 10, 
-        zIndex: 5,
-        display: 'flex',
-        gap: '10px'
-      }}>
-        {/* Positioning buttons */}
-        <button 
-          onClick={() => setPositionMode('default')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: positionMode === 'default' ? '#d0eaff' : '#f0f0f0',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            color: '#000'
-          }}
-        >
-          Default
-        </button>
-        <button 
-          onClick={() => setPositionMode('dynasty')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: positionMode === 'dynasty' ? '#d0eaff' : '#f0f0f0',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            color: '#000'
-          }}
-        >
-          Condensed Dynasty
-        </button>
-        <button 
-          onClick={() => setPositionMode('year')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: positionMode === 'year' ? '#d0eaff' : '#f0f0f0',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            color: '#000'
-          }}
-        >
-          Year
-        </button>
-        {/* Divider for visual separation */}
-        <div style={{ width: '2px', background: '#ccc', margin: '0 10px' }} />
-        {/* Coloring buttons */}
-        <button 
-          onClick={() => setColorMode('year')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: colorMode === 'year' ? '#d0eaff' : '#f0f0f0',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            color: '#000'
-          }}
-        >
-          Color by Year
-        </button>
-        <button 
-          onClick={() => setColorMode('dynasty')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: colorMode === 'dynasty' ? '#d0eaff' : '#f0f0f0',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            color: '#000'
-          }}
-        >
-          Color by Dynasty
-        </button>
-      </div>
       <ReactFlow
         nodes={nodesWithSearchHighlight}
         edges={edges}

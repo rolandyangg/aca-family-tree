@@ -348,7 +348,18 @@ const FamilyTreeInner = () => {
         includeHiddenNodes: false
       });
     }, 100);
-  }, [positionMode, colorMode, allRawNodes, fitView]); // Added fitView to dependencies
+  }, [positionMode, allRawNodes, fitView]); // Removed colorMode from dependencies
+
+  // Update node colors when color mode changes
+  React.useEffect(() => {
+    setNodes(nodes => nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(node.id)) : zodiacColors[DATA.findIndex(group => Object.keys(group).includes(node.id))]
+      }
+    })));
+  }, [colorMode]);
 
   // Add search functionality
   const matchingNodes = useMemo(() => {

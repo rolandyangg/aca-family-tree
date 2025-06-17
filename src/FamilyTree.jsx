@@ -628,7 +628,7 @@ const FamilyTreeInner = () => {
         nodesDraggable={true}
         fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }}
         minZoom={0.1}
-        maxZoom={2}
+        maxZoom={3}
       >
         <Background />
         <Controls />

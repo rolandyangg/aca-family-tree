@@ -227,25 +227,86 @@ const FamilyTree = () => {
         });
       });
     } else { // positionMode === 'year'
-      const xSpacing = 180; // Original default spacing
-      DATA.forEach((group, level) => {
-        const names = Object.keys(group);
-        const xOffset = (names.length * xSpacing) / 2;
+      const xSpacing = 180; // Base spacing between nodes
+      const ySpacing = 140;
+      let nextX = 0;
+      const nodeX = new Map();
+      const nodeLevel = new Map();
 
-        names.forEach((name, i) => {
-          const originalNode = allRawNodes.find(n => n.id === name); // Find the original node from allRawNodes
-          newNodes.push({
-            ...originalNode,
-            position: {
-              x: i * xSpacing - xOffset,
-              y: level * ySpacing
-            },
-            data: {
-              ...originalNode.data,
-              label: `${name} ${zodiacEmojis[level]}${getZodiacEmoji(name)}`,
-              bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(name)) : zodiacColors[level]
-            }
+      // Build child map for each node
+      const childMap = new Map();
+      DATA.forEach((group, level) => {
+        for (const parent in group) {
+          if (!childMap.has(parent)) childMap.set(parent, []);
+          group[parent].forEach(child => {
+            childMap.get(parent).push(child);
           });
+        }
+      });
+
+      // Find all nodes
+      const allNames = new Set();
+      DATA.forEach(group => {
+        Object.keys(group).forEach(name => allNames.add(name));
+        Object.values(group).forEach(children => children.forEach(child => allNames.add(child)));
+      });
+
+      // Find roots (nodes that are never a child)
+      const allChildren = new Set();
+      DATA.forEach(group => {
+        Object.values(group).forEach(children => children.forEach(child => allChildren.add(child)));
+      });
+      const roots = Array.from(allNames).filter(name => !allChildren.has(name));
+
+      // Recursive layout
+      function layout(node, level) {
+        nodeLevel.set(node, level);
+        const children = childMap.get(node) || [];
+        if (children.length === 0) {
+          // Leaf node
+          nodeX.set(node, nextX);
+          nextX += xSpacing;
+        } else {
+          children.forEach(child => layout(child, level + 1));
+          // Center parent over children
+          const minX = Math.min(...children.map(c => nodeX.get(c)));
+          const maxX = Math.max(...children.map(c => nodeX.get(c)));
+          nodeX.set(node, (minX + maxX) / 2);
+        }
+      }
+      roots.sort(); // For consistency
+      roots.forEach(root => layout(root, 0));
+
+      // Center the tree
+      const allX = Array.from(nodeX.values());
+      const centerOffset = (Math.min(...allX) + Math.max(...allX)) / 2;
+
+      // Create the nodes with the optimized positions
+      newNodes = [];
+      nodeX.forEach((x, name) => {
+        // Find the level for this node
+        const level = nodeLevel.get(name);
+        // Find the original node data
+        let nodeLevelIdx = level;
+        // Try to find the level index from DATA if possible
+        for (let i = 0; i < DATA.length; i++) {
+          if (Object.keys(DATA[i]).includes(name)) {
+            nodeLevelIdx = i;
+            break;
+          }
+        }
+        const originalNode = allRawNodes.find(n => n.id === name);
+        newNodes.push({
+          ...originalNode,
+          position: {
+            x: x - centerOffset,
+            y: nodeLevelIdx * ySpacing
+          },
+          data: {
+            ...originalNode.data,
+            label: `${name} ${zodiacEmojis[nodeLevelIdx]}${getZodiacEmoji(name)}`,
+            bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(name)) : zodiacColors[nodeLevelIdx]
+          }
         });
       });
     }

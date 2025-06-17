@@ -412,76 +412,89 @@ const FamilyTreeInner = () => {
         backgroundColor: 'white',
         borderRadius: '4px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        width: 'min(90vw, 400px)',
+        width: 'min(95vw, 400px)',
         boxSizing: 'border-box'
       }}>
         {/* Search bar - always visible */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          flexWrap: 'wrap',
+          gap: '4px',
+          flexWrap: 'nowrap',
           justifyContent: 'center',
           width: '100%'
         }}>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search names..."
-            style={{
-              padding: '6px 8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              width: '100%',
-              boxSizing: 'border-box'
-            }}
-          />
-          {matchingNodes.length > 0 && (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '4px', 
-              flexWrap: 'nowrap',
-              width: '100%',
-              justifyContent: 'center'
-            }}>
-              <button
-                onClick={() => cycleSearchResult('up')}
-                style={{
-                  padding: '6px 10px',
-                  backgroundColor: '#f0f0f0',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  color: '#000',
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            flex: 1,
+            minWidth: 0 // This allows the flex item to shrink below its content size
+          }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search names..."
+              style={{
+                padding: '6px 8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                width: '100%',
+                boxSizing: 'border-box',
+                minWidth: 0 // This allows the input to shrink below its default min-width
+              }}
+            />
+            {matchingNodes.length > 0 && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '2px', 
+                flexWrap: 'nowrap',
+                whiteSpace: 'nowrap',
+                flexShrink: 0 // Prevents the controls from shrinking
+              }}>
+                <button
+                  onClick={() => cycleSearchResult('up')}
+                  style={{
+                    padding: '6px 8px',
+                    backgroundColor: '#f0f0f0',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: '#000',
+                    fontSize: '14px',
+                    minWidth: '32px'
+                  }}
+                >
+                  ↑
+                </button>
+                <span style={{ 
+                  color: '#666', 
                   fontSize: '14px',
-                  minWidth: '36px'
-                }}
-              >
-                ↑
-              </button>
-              <span style={{ color: '#666', whiteSpace: 'nowrap', fontSize: '14px' }}>
-                {currentSearchIndex + 1} of {matchingNodes.length}
-              </span>
-              <button
-                onClick={() => cycleSearchResult('down')}
-                style={{
-                  padding: '6px 10px',
-                  backgroundColor: '#f0f0f0',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  color: '#000',
-                  fontSize: '14px',
-                  minWidth: '36px'
-                }}
-              >
-                ↓
-              </button>
-            </div>
-          )}
+                  padding: '0 2px'
+                }}>
+                  {currentSearchIndex + 1}/{matchingNodes.length}
+                </span>
+                <button
+                  onClick={() => cycleSearchResult('down')}
+                  style={{
+                    padding: '6px 8px',
+                    backgroundColor: '#f0f0f0',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: '#000',
+                    fontSize: '14px',
+                    minWidth: '32px'
+                  }}
+                >
+                  ↓
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Expand/Collapse button */}

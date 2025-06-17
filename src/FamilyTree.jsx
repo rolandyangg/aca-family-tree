@@ -412,25 +412,46 @@ const FamilyTreeInner = () => {
         backgroundColor: 'white',
         borderRadius: '4px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        width: 'min(95vw, 400px)',
+        width: 'min(90vw, 400px)',
         boxSizing: 'border-box'
       }}>
         {/* Search bar - always visible */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
-          flexWrap: 'nowrap',
+          gap: '8px',
+          flexWrap: 'wrap',
           justifyContent: 'center',
           width: '100%'
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
+            gap: '8px',
             flex: 1,
-            minWidth: 0 // This allows the flex item to shrink below its content size
+            minWidth: 0
           }}>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              style={{
+                padding: '2px',
+                backgroundColor: '#f0f0f0',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                color: '#000',
+                fontSize: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                width: '32px',
+                height: '32px'
+              }}
+              title="Settings"
+            >
+              ⚙
+            </button>
             <input
               type="text"
               value={searchQuery}
@@ -443,83 +464,61 @@ const FamilyTreeInner = () => {
                 borderRadius: '4px',
                 width: '100%',
                 boxSizing: 'border-box',
-                minWidth: 0 // This allows the input to shrink below its default min-width
+                minWidth: 0
               }}
             />
-            {matchingNodes.length > 0 && (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '2px', 
-                flexWrap: 'nowrap',
-                whiteSpace: 'nowrap',
-                flexShrink: 0 // Prevents the controls from shrinking
-              }}>
-                <button
-                  onClick={() => cycleSearchResult('up')}
-                  style={{
-                    padding: '6px 8px',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    color: '#000',
-                    fontSize: '14px',
-                    minWidth: '32px'
-                  }}
-                >
-                  ↑
-                </button>
-                <span style={{ 
-                  color: '#666', 
-                  fontSize: '14px',
-                  padding: '0 2px'
-                }}>
-                  {currentSearchIndex + 1}/{matchingNodes.length}
-                </span>
-                <button
-                  onClick={() => cycleSearchResult('down')}
-                  style={{
-                    padding: '6px 8px',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    color: '#000',
-                    fontSize: '14px',
-                    minWidth: '32px'
-                  }}
-                >
-                  ↓
-                </button>
-              </div>
-            )}
           </div>
+          {matchingNodes.length > 0 && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '4px', 
+              flexWrap: 'nowrap',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}>
+              <button
+                onClick={() => cycleSearchResult('up')}
+                style={{
+                  padding: '6px 10px',
+                  backgroundColor: '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  fontSize: '14px',
+                  minWidth: '36px'
+                }}
+              >
+                ↑
+              </button>
+              <span style={{ 
+                color: '#666', 
+                fontSize: '14px',
+                padding: '0 2px'
+              }}>
+                {currentSearchIndex + 1}/{matchingNodes.length}
+              </span>
+              <button
+                onClick={() => cycleSearchResult('down')}
+                style={{
+                  padding: '6px 10px',
+                  backgroundColor: '#f0f0f0',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  fontSize: '14px',
+                  minWidth: '36px'
+                }}
+              >
+                ↓
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Expand/Collapse button */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          style={{
-            padding: '6px 12px',
-            backgroundColor: '#f0f0f0',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            color: '#000',
-            fontSize: '14px',
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px'
-          }}
-        >
-          {isExpanded ? 'Hide Options' : 'Show Options'}
-          <span style={{ fontSize: '12px' }}>{isExpanded ? '▲' : '▼'}</span>
-        </button>
-
-        {/* View controls - collapsible */}
+        {/* View controls - dropdown */}
         {isExpanded && (
           <div style={{ 
             display: 'flex',

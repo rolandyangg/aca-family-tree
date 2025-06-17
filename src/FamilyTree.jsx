@@ -339,7 +339,16 @@ const FamilyTreeInner = () => {
     }
 
     setNodes(newNodes);
-  }, [positionMode, colorMode, allRawNodes]); // Dependencies: positionMode, colorMode, allRawNodes. dynastyColorMap and zodiacColors are constants.
+    
+    // Add a small delay to ensure nodes are rendered before fitting view
+    setTimeout(() => {
+      fitView({ 
+        padding: 0.2,
+        duration: 800,
+        includeHiddenNodes: false
+      });
+    }, 100);
+  }, [positionMode, colorMode, allRawNodes, fitView]); // Added fitView to dependencies
 
   // Add search functionality
   const matchingNodes = useMemo(() => {

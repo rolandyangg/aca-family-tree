@@ -464,7 +464,8 @@ const FamilyTreeInner = () => {
                 borderRadius: '4px',
                 width: '100%',
                 boxSizing: 'border-box',
-                minWidth: 0
+                minWidth: 0,
+                fontSize: '16px'
               }}
             />
           </div>

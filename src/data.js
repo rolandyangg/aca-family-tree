@@ -227,7 +227,7 @@ const EXEC = {
   "🐀": ["Thomas Xian", "Henry Cao", "Ryan Young"],
   "🐂": ["Sydney Tay", "Bryant Yang", "Alyssa Zhu", "Robin Reyes"],
   "🐅": ["Serena Lee", "Cissy Huang", "Pauline Young", "Michelle Chan"],
-  "🐇": ["Victor Xie", "Madeline Zhang", "Grace Deng", "Alex Pun"],
+  "🐇": ["Victor Xie", "Madeline Zhang", "Grace Deng", "Alex Pun", "Janet Louie"], // Janet Louie is an exception, she repeated EEC twice.
   "🐉": ["Morgan Oey", "Andrew Nguyen", "Sophia Zhao"],
   "🐍": ["Jessica Li", "Jolene Chan", "Tyler Ho", "Audrey Huang"],
   "🐎": ["David Xu", "Kaylee Huynh", "Ritchie Lee", "Luisa Chen"]

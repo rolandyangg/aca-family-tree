@@ -84,6 +84,79 @@ const createDynastyColorMap = () => {
 
 const dynastyColorMap = createDynastyColorMap();
 
+function mixHexColors(hex1, hex2) {
+  const parse = (hex) => ({
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16),
+  });
+  const c1 = parse(hex1);
+  const c2 = parse(hex2);
+  const mix = (a, b) => Math.round((a + b) / 2);
+  const r = mix(c1.r, c2.r);
+  const g = mix(c1.g, c2.g);
+  const b = mix(c1.b, c2.b);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+function buildParentChildMaps() {
+  const parentMap = new Map();
+  const childMap = new Map();
+  DATA.forEach((group) => {
+    for (const parent in group) {
+      if (!childMap.has(parent)) childMap.set(parent, []);
+      group[parent].forEach(child => {
+        childMap.get(parent).push(child);
+        if (!parentMap.has(child)) parentMap.set(child, []);
+        if (!parentMap.get(child).includes(parent)) {
+          parentMap.get(child).push(parent);
+        }
+      });
+    }
+  });
+  return { parentMap, childMap };
+}
+
+const { parentMap: dynastyParentMap, childMap: dynastyChildMap } = buildParentChildMaps();
+
+function createMergedDynastyColorMap() {
+  const mergedColors = new Map();
+
+  dynastyParentMap.forEach((parents, child) => {
+    if (parents.length < 2) return;
+
+    const roots = [...new Set(parents.map(parent => findFurthestParent(parent)))];
+    if (roots.length < 2) return;
+
+    const color1 = dynastyColorMap.get(roots[0]);
+    const color2 = dynastyColorMap.get(roots[1]);
+    if (!color1 || !color2) return;
+
+    const mixedColor = mixHexColors(color1, color2);
+    const queue = [child];
+    const visited = new Set();
+
+    while (queue.length > 0) {
+      const node = queue.shift();
+      if (visited.has(node)) continue;
+      visited.add(node);
+      mergedColors.set(node, mixedColor);
+      (dynastyChildMap.get(node) || []).forEach(descendant => queue.push(descendant));
+    }
+  });
+
+  return mergedColors;
+}
+
+const mergedDynastyColorMap = createMergedDynastyColorMap();
+
+function getDynastyColor(name) {
+  if (mergedDynastyColorMap.has(name)) {
+    return mergedDynastyColorMap.get(name);
+  }
+  return dynastyColorMap.get(findFurthestParent(name));
+}
+
 // Function to organize nodes by dynasty and year
 const organizeNodesByDynasty = (nodes) => {
   // Group nodes by dynasty
@@ -225,7 +298,6 @@ const FamilyTreeInner = () => {
       // Position all nodes based on the sort mode and pre-calculated dynasty positions
       dynastyGroups.forEach((dynastyNodes, dynastyIndex) => {
         const dynastyPos = dynastyHorizontalPositions.get(dynastyIndex);
-        const dynastyRoot = findFurthestParent(dynastyNodes[0].id); // Assuming first node in group represents the root
 
         // Group nodes by year within this dynasty
         const yearGroups = new Map();
@@ -251,7 +323,7 @@ const FamilyTreeInner = () => {
               },
               data: {
                 ...node.data,
-                bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(dynastyRoot) : zodiacColors[year]
+                bgColor: colorMode === 'dynasty' ? getDynastyColor(node.id) : zodiacColors[year]
               }
             });
           });
@@ -274,7 +346,7 @@ const FamilyTreeInner = () => {
             data: {
               ...originalNode.data,
               label: `${name} ${zodiacEmojis[level]}${getZodiacEmoji(name)}`,
-              bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(name)) : zodiacColors[level]
+              bgColor: colorMode === 'dynasty' ? getDynastyColor(name) : zodiacColors[level]
             }
           });
         });
@@ -548,7 +620,7 @@ const FamilyTreeInner = () => {
           data: {
             ...originalNode.data,
             label: `${name} ${zodiacEmojis[nodeLevelIdx]}${getZodiacEmoji(name)}`,
-            bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(name)) : zodiacColors[nodeLevelIdx]
+            bgColor: colorMode === 'dynasty' ? getDynastyColor(name) : zodiacColors[nodeLevelIdx]
           }
         });
       });
@@ -572,7 +644,7 @@ const FamilyTreeInner = () => {
       ...node,
       data: {
         ...node.data,
-        bgColor: colorMode === 'dynasty' ? dynastyColorMap.get(findFurthestParent(node.id)) : zodiacColors[DATA.findIndex(group => Object.keys(group).includes(node.id))]
+        bgColor: colorMode === 'dynasty' ? getDynastyColor(node.id) : zodiacColors[DATA.findIndex(group => Object.keys(group).includes(node.id))]
       }
     })));
   }, [colorMode]);

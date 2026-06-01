@@ -260,13 +260,18 @@ const FamilyTreeInner = () => {
       const nodeX = new Map();
       const nodeLevel = new Map();
 
-      // Build child map for each node
+      // Build child and parent maps
       const childMap = new Map();
-      DATA.forEach((group, level) => {
+      const parentMap = new Map();
+      DATA.forEach((group) => {
         for (const parent in group) {
           if (!childMap.has(parent)) childMap.set(parent, []);
           group[parent].forEach(child => {
             childMap.get(parent).push(child);
+            if (!parentMap.has(child)) parentMap.set(child, []);
+            if (!parentMap.get(child).includes(parent)) {
+              parentMap.get(child).push(parent);
+            }
           });
         }
       });
@@ -285,24 +290,105 @@ const FamilyTreeInner = () => {
       });
       const roots = Array.from(allNames).filter(name => !allChildren.has(name));
 
-      // Recursive layout
+      const hasMultipleParents = (name) => (parentMap.get(name)?.length ?? 0) >= 2;
+
+      // Recursive layout; defer shared children so parents keep natural positions
+      const laidOut = new Set();
       function layout(node, level) {
+        if (laidOut.has(node)) {
+          nodeLevel.set(node, Math.max(nodeLevel.get(node) ?? level, level));
+          return;
+        }
+        laidOut.add(node);
         nodeLevel.set(node, level);
-        const children = childMap.get(node) || [];
+
+        if (hasMultipleParents(node)) return;
+
+        const children = (childMap.get(node) || []).filter(child => !hasMultipleParents(child));
         if (children.length === 0) {
-          // Leaf node
           nodeX.set(node, nextX);
           nextX += xSpacing;
         } else {
           children.forEach(child => layout(child, level + 1));
-          // Center parent over children
-          const minX = Math.min(...children.map(c => nodeX.get(c)));
-          const maxX = Math.max(...children.map(c => nodeX.get(c)));
-          nodeX.set(node, (minX + maxX) / 2);
+          const positionedChildren = children.filter(child => nodeX.has(child));
+          if (positionedChildren.length > 0) {
+            const minX = Math.min(...positionedChildren.map(c => nodeX.get(c)));
+            const maxX = Math.max(...positionedChildren.map(c => nodeX.get(c)));
+            nodeX.set(node, (minX + maxX) / 2);
+          } else {
+            nodeX.set(node, nextX);
+            nextX += xSpacing;
+          }
         }
       }
-      roots.sort(); // For consistency
+      roots.sort();
       roots.forEach(root => layout(root, 0));
+
+      // Place shared children midway between their parents
+      parentMap.forEach((parents, child) => {
+        if (parents.length >= 2) {
+          const parentXs = parents.filter(p => nodeX.has(p)).map(p => nodeX.get(p));
+          if (parentXs.length >= 2) {
+            nodeX.set(child, (Math.min(...parentXs) + Math.max(...parentXs)) / 2);
+          }
+        }
+      });
+
+      const getDataLevel = (name) => {
+        for (let i = 0; i < DATA.length; i++) {
+          if (Object.keys(DATA[i]).includes(name)) return i;
+        }
+        return nodeLevel.get(name) ?? 0;
+      };
+
+      // Nudge shared children off overlapping nodes while staying close to the midpoint
+      const sharedChildren = [...parentMap.keys()]
+        .filter(name => (parentMap.get(name)?.length ?? 0) >= 2 && nodeX.has(name))
+        .sort((a, b) => nodeX.get(a) - nodeX.get(b));
+
+      sharedChildren.forEach(child => {
+        const row = getDataLevel(child);
+        const idealX = nodeX.get(child);
+
+        const isClear = (x) => ![...nodeX.entries()].some(([name, otherX]) =>
+          name !== child && getDataLevel(name) === row && Math.abs(x - otherX) < xSpacing
+        );
+
+        if (isClear(idealX)) return;
+
+        const rowXs = [...nodeX.entries()]
+          .filter(([name]) => name !== child && getDataLevel(name) === row)
+          .map(([, x]) => x);
+
+        let bestX = idealX;
+        let bestDist = Infinity;
+        for (const otherX of rowXs) {
+          for (const candidate of [otherX + xSpacing, otherX - xSpacing]) {
+            if (isClear(candidate)) {
+              const dist = Math.abs(candidate - idealX);
+              if (dist < bestDist) {
+                bestDist = dist;
+                bestX = candidate;
+              }
+            }
+          }
+        }
+
+        if (bestDist === Infinity) {
+          for (let offset = xSpacing; offset <= xSpacing * 50; offset += xSpacing / 2) {
+            if (isClear(idealX + offset)) {
+              bestX = idealX + offset;
+              break;
+            }
+            if (isClear(idealX - offset)) {
+              bestX = idealX - offset;
+              break;
+            }
+          }
+        }
+
+        nodeX.set(child, bestX);
+      });
 
       // Center the tree
       const allX = Array.from(nodeX.values());

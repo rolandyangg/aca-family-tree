@@ -14,6 +14,7 @@ const NameNode = ({ data }) => {
       color: '#000',        // Force text to be black
       fontWeight: 'bold',
       textAlign: 'center',
+      whiteSpace: 'nowrap',
     }}>
       {data.label}
 
@@ -114,6 +115,32 @@ function getZodiacEmoji(name) {
     }
   }
   return '';
+}
+
+function getNodeLevelIdx(name) {
+  for (let i = 0; i < DATA.length; i++) {
+    if (Object.keys(DATA[i]).includes(name)) return i;
+  }
+  return 0;
+}
+
+function getNodeLabel(name) {
+  const levelIdx = getNodeLevelIdx(name);
+  return `${name} ${zodiacEmojis[levelIdx]}${getZodiacEmoji(name)}`;
+}
+
+function estimateNodeWidth(label) {
+  const charWidth = 8.5;
+  const padding = 22;
+  return Math.max(120, label.length * charWidth + padding);
+}
+
+function buildNodeHalfWidthMap(names) {
+  const map = new Map();
+  names.forEach(name => {
+    map.set(name, estimateNodeWidth(getNodeLabel(name)) / 2);
+  });
+  return map;
 }
 
 // Create a new inner component that uses useReactFlow
@@ -254,7 +281,8 @@ const FamilyTreeInner = () => {
       });
     } else { // positionMode === 'default'
       // Tidy tree layout (the new default)
-      const xSpacing = 180; // Base spacing between nodes
+      const xSpacing = 200; // Fallback minimum horizontal gap between node centers
+      const nodeMargin = 16;
       const ySpacing = 140;
       let nextX = 0;
       const nodeX = new Map();
@@ -283,6 +311,12 @@ const FamilyTreeInner = () => {
         Object.values(group).forEach(children => children.forEach(child => allNames.add(child)));
       });
 
+      const nodeHalfWidth = buildNodeHalfWidthMap(allNames);
+      const minCenterGap = (nameA, nameB) =>
+        nodeHalfWidth.get(nameA) + nodeHalfWidth.get(nameB) + nodeMargin;
+      const nodeStep = (name) =>
+        Math.max(xSpacing, nodeHalfWidth.get(name) * 2 + nodeMargin);
+
       // Find roots (nodes that are never a child)
       const allChildren = new Set();
       DATA.forEach(group => {
@@ -307,7 +341,7 @@ const FamilyTreeInner = () => {
         const children = (childMap.get(node) || []).filter(child => !hasMultipleParents(child));
         if (children.length === 0) {
           nodeX.set(node, nextX);
-          nextX += xSpacing;
+          nextX += nodeStep(node);
         } else {
           children.forEach(child => layout(child, level + 1));
           const positionedChildren = children.filter(child => nodeX.has(child));
@@ -317,7 +351,7 @@ const FamilyTreeInner = () => {
             nodeX.set(node, (minX + maxX) / 2);
           } else {
             nodeX.set(node, nextX);
-            nextX += xSpacing;
+            nextX += nodeStep(node);
           }
         }
       }
@@ -341,6 +375,33 @@ const FamilyTreeInner = () => {
         return nodeLevel.get(name) ?? 0;
       };
 
+      const isRowPositionClear = (x, row, excludeName) =>
+        ![...nodeX.entries()].some(([name, otherX]) =>
+          name !== excludeName &&
+          getDataLevel(name) === row &&
+          Math.abs(x - otherX) < minCenterGap(excludeName, name)
+        );
+
+      const resolveRowOverlaps = () => {
+        for (let level = 0; level < DATA.length; level++) {
+          const rowNodes = [...nodeX.entries()]
+            .filter(([name]) => getDataLevel(name) === level)
+            .sort((a, b) => a[1] - b[1]);
+
+          for (let i = 1; i < rowNodes.length; i++) {
+            const [prevName, prevX] = rowNodes[i - 1];
+            const requiredX = prevX + minCenterGap(prevName, rowNodes[i][0]);
+            if (rowNodes[i][1] < requiredX) {
+              const shift = requiredX - rowNodes[i][1];
+              for (let j = i; j < rowNodes.length; j++) {
+                rowNodes[j][1] += shift;
+                nodeX.set(rowNodes[j][0], rowNodes[j][1]);
+              }
+            }
+          }
+        }
+      };
+
       // Nudge shared children off overlapping nodes while staying close to the midpoint
       const sharedChildren = [...parentMap.keys()]
         .filter(name => (parentMap.get(name)?.length ?? 0) >= 2 && nodeX.has(name))
@@ -350,21 +411,17 @@ const FamilyTreeInner = () => {
         const row = getDataLevel(child);
         const idealX = nodeX.get(child);
 
-        const isClear = (x) => ![...nodeX.entries()].some(([name, otherX]) =>
-          name !== child && getDataLevel(name) === row && Math.abs(x - otherX) < xSpacing
-        );
+        if (isRowPositionClear(idealX, row, child)) return;
 
-        if (isClear(idealX)) return;
-
-        const rowXs = [...nodeX.entries()]
-          .filter(([name]) => name !== child && getDataLevel(name) === row)
-          .map(([, x]) => x);
+        const rowNeighbors = [...nodeX.entries()]
+          .filter(([name]) => name !== child && getDataLevel(name) === row);
 
         let bestX = idealX;
         let bestDist = Infinity;
-        for (const otherX of rowXs) {
-          for (const candidate of [otherX + xSpacing, otherX - xSpacing]) {
-            if (isClear(candidate)) {
+        for (const [otherName, otherX] of rowNeighbors) {
+          const gap = minCenterGap(child, otherName);
+          for (const candidate of [otherX + gap, otherX - gap]) {
+            if (isRowPositionClear(candidate, row, child)) {
               const dist = Math.abs(candidate - idealX);
               if (dist < bestDist) {
                 bestDist = dist;
@@ -375,12 +432,12 @@ const FamilyTreeInner = () => {
         }
 
         if (bestDist === Infinity) {
-          for (let offset = xSpacing; offset <= xSpacing * 50; offset += xSpacing / 2) {
-            if (isClear(idealX + offset)) {
+          for (let offset = nodeStep(child); offset <= xSpacing * 50; offset += xSpacing / 2) {
+            if (isRowPositionClear(idealX + offset, row, child)) {
               bestX = idealX + offset;
               break;
             }
-            if (isClear(idealX - offset)) {
+            if (isRowPositionClear(idealX - offset, row, child)) {
               bestX = idealX - offset;
               break;
             }
@@ -389,6 +446,79 @@ const FamilyTreeInner = () => {
 
         nodeX.set(child, bestX);
       });
+
+      resolveRowOverlaps();
+
+      // Nudge nodes off unrelated edge lines that pass through their box
+      const NODE_HEIGHT = 50;
+      const layoutEdges = [];
+      childMap.forEach((children, parent) => {
+        children.forEach(child => layoutEdges.push([parent, child]));
+      });
+
+      const getNodeCenter = (name) => ({
+        x: nodeX.get(name),
+        y: getDataLevel(name) * ySpacing + NODE_HEIGHT / 2,
+      });
+
+      const getLineXAtY = (x1, y1, x2, y2, y) => {
+        if (Math.abs(y2 - y1) < 1) return null;
+        const t = (y - y1) / (y2 - y1);
+        if (t < 0 || t > 1) return null;
+        return x1 + t * (x2 - x1);
+      };
+
+      const edgeCrossesNode = (source, target, nodeName, nodeCenter) => {
+        if (source === nodeName || target === nodeName) return false;
+        const sourceCenter = getNodeCenter(source);
+        const targetCenter = getNodeCenter(target);
+        const lineX = getLineXAtY(
+          sourceCenter.x, sourceCenter.y,
+          targetCenter.x, targetCenter.y,
+          nodeCenter.y
+        );
+        if (lineX === null) return false;
+        return Math.abs(lineX - nodeCenter.x) < nodeHalfWidth.get(nodeName);
+      };
+
+      [...nodeX.keys()].forEach(name => {
+        const row = getDataLevel(name);
+        const center = getNodeCenter(name);
+        const hasCrossing = layoutEdges.some(([source, target]) =>
+          edgeCrossesNode(source, target, name, center)
+        );
+        if (!hasCrossing) return;
+
+        const startX = nodeX.get(name);
+        let bestX = startX;
+        let bestDist = Infinity;
+
+        for (const direction of [1, -1]) {
+          for (let step = 10; step <= xSpacing * 3; step += 10) {
+            const candidateX = startX + direction * step;
+            if (!isRowPositionClear(candidateX, row, name)) continue;
+
+            const testCenter = { x: candidateX, y: center.y };
+            const stillCrosses = layoutEdges.some(([source, target]) =>
+              edgeCrossesNode(source, target, name, testCenter)
+            );
+            if (!stillCrosses) {
+              const dist = Math.abs(candidateX - startX);
+              if (dist < bestDist) {
+                bestDist = dist;
+                bestX = candidateX;
+              }
+              break;
+            }
+          }
+        }
+
+        if (bestDist < Infinity) {
+          nodeX.set(name, bestX);
+        }
+      });
+
+      resolveRowOverlaps();
 
       // Center the tree
       const allX = Array.from(nodeX.values());

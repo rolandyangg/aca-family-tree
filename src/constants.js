@@ -11,7 +11,8 @@ const zodiacEmojis = [
   "🐇", // Rabbit
   "🐉", // Dragon
   "🐍", // Snake
-  "🐎"  // Horse
+  "🐎", // Horse
+  "🐏"  // Ram2
 ];
 const zodiacColors = [
   "#FFE4E1", // Ram - Misty Rose
@@ -25,7 +26,8 @@ const zodiacColors = [
   "#D8BFD8", // Rabbit - Thistle
   "#F08080", // Dragon - Light Coral
   "#66CDAA", // Snake - Medium Aquamarine
-  "#F4A460"  // Horse - Sandy Brown
+  "#F4A460", // Horse - Sandy Brown
+  "#FFFACD"  // Ram2 - Lemon Chiffon
 ];
 
 export {

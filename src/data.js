@@ -179,12 +179,12 @@ const SNAKE = {
   "Brian Zhao": [],
   "Ashley Huang": [],
   "Victoria Yee": [],
-  "Luisa Chen": [],
+  "Luisa Chen": ["Auri Suder"],
   "Sadie Wong": ["Chloe Han", "Allen Ke"],
-  "David Xu": [],
+  "David Xu": ["Rina Li"],
   "Robert Cui": [],
   "Ritchie Li": ["Jojo Wang", "Angela Huang"],
-  "Kaylee Huynh": [],
+  "Kaylee Huynh": ["Rina Li"],
   "Jeffrey Liu": ["Manda Cai", "Daniel Mastick"],
   "Theanh Nguyen": ["Angelina Zou"],
   "Ella Liang": ["Sophia Tan"],
@@ -196,26 +196,49 @@ const SNAKE = {
 }
 
 const HORSE = {
-  "Annie Liu": [],
-  "Mia Nakamura": [],
-  "Natalie La": [],
+  "Annie Liu": ["Taj Aliotta"],
+  "Mia Nakamura": ["Jessica Yin"],
+  "Natalie La": ["Hastin Chen"],
   "Nicha Tangcharoenmonkong": [],
   "William Liu": [],
   "Roland Yang": [],
   "Alex Hoe": [],
   "Chloe Han": [],
-  "Allen Ke": [],
-  "Jojo Wang": [],
-  "Angela Huang": [],
-  "Manda Cai": [],
-  "Daniel Mastick": [],
-  "Angelina Zou": [],
+  "Allen Ke": ["Roy Jeong", "Eddy Yao", "Megan Nguyen", "Shannon Chau"],
+  "Jojo Wang": ["Yash Malani"],
+  "Angela Huang": ["April Gou"],
+  "Manda Cai": ["Dylan Choi"],
+  "Daniel Mastick": ["Michelle Xie", "Aidan Yu"],
+  "Angelina Zou": ["Cecilia Liang"],
   "Sophia Tan": [],
-  "Justine Li-Wu": [],
-  "Richard Li": [],
-  "Fiona Xu": [],
+  "Justine Li-Wu": ["Stephanie Feng", "Anaya McKail"],
+  "Richard Li": ["Auri Suder"],
+  "Fiona Xu": ["Matthew Chen"],
   "Connor Chu": [],
-  "Nicklaus Chui": []
+  "Nicklaus Chui": ["Ryan Wu", "Ling Casenas"]
+}
+
+const RAM2 = {
+   "Michelle Xie": [],
+   "Stephanie Feng": [],
+   "Auri Suder": [],
+   "Rina Li": [],
+   "Aidan Yu": [],
+   "Cecilia Liang": [],
+   "Yash Malani": [],
+   "Ryan Wu": [],
+   "Hastin Chen": [],
+   "Matthew Chen": [],
+   "Roy Jeong": [],
+   "Anaya McKail": [],
+   "Dylan Choi": [],
+   "Ling Casenas": [],
+   "Taj Aliotta": [],
+   "Eddy Yao": [],
+   "Megan Nguyen": [],
+   "April Gou": [],
+   "Shannon Chau": [],
+   "Jessica Yin": []
 }
 
 const EXEC = {
@@ -233,6 +256,6 @@ const EXEC = {
   "🐎": ["David Xu", "Kaylee Huynh", "Ritchie Lee", "Luisa Chen"]
 }
 
-const DATA =  [RAM, MONKEY, ROOSTER, DOG, BOAR, RAT, OX, TIGER, RABBIT, DRAGON, SNAKE, HORSE];
+const DATA =  [RAM, MONKEY, ROOSTER, DOG, BOAR, RAT, OX, TIGER, RABBIT, DRAGON, SNAKE, HORSE, RAM2];
 export { EXEC };
 export default DATA;

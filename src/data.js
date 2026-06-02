@@ -242,7 +242,7 @@ const RAM2 = {
 }
 
 const EXEC = {
-  "🐐": ["Jessica Wong", "Avery Hua", "Eileen The", "Brandon Shih"],
+  "🐐": ["Jessica Wong", "Avery Hua", "Eileen The", "Brandon Shih", "Jojo Wang", "Angela Huang", "Nicha Tangcharoenmonkong", "Daniel Mastick"],
   "🐒": ["Sienna Tsan", "Dermot Nguyen", "Annie Jiang", "Amy Wong"],
   "🐓": ["David Wright", "Jing Wang", "Dan Sui"],
   "🐕": ["Michael Dao", "Jenny Huang", "Jeremy Phan"],

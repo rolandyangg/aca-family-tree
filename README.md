@@ -35,7 +35,7 @@ const YEAR = {
 }
 ```
 
-In order for the new year to be added, it must be appended to the end of the `DATA` array at the bottom of the file. The order of years in that array dictates the order they are outputted.
+In order for the new year to be added, it must be appended to the end of the `DATA` array at the bottom of the file. The order of years in that array dictates the order they are outputted. A corresponding emoji and color must also be appended to the parallel arrays in `constants.js` at the same index.
 
 In the tree, people who did Exec are notated by an extra emoji in their name with the zodiac year that they did Exec. For the extra emoji to be added to their name, you must put their full name in the corresponding emoji dictionary in `EXEC` in the `data.js` file.
 
@@ -43,6 +43,19 @@ In the tree, people who did Exec are notated by an extra emoji in their name wit
 const EXEC = {
     ...
     "🐎": ["EXEC_1", "EXEC_2", ...]
+    ...
+}
+```
+
+Each person's position history is stored in the `POSITIONS` dictionary in `data.js`. When adding a new staffer, add an entry for them with a list of every position they've held.
+
+```
+const POSITIONS = {
+    ...
+    "STAFFER_1": [
+        { title: "POSITION_TITLE", years: "YYYY-YYYY", zodiac: "EMOJI YEAR_NAME" },
+        ...
+    ],
     ...
 }
 ```

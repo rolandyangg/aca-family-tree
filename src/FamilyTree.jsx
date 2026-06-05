@@ -1,17 +1,18 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { ReactFlow, Background, Controls, Handle, Position, useNodesState, useEdgesState, useReactFlow, ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import DATA, { EXEC } from "./data"
+import DATA, { EXEC, POSITIONS } from "./data"
 import { zodiacColors, zodiacEmojis } from './constants';
 
 const NameNode = ({ data }) => {
   return (
     <div style={{
+      position: 'relative',
       padding: 10,
       backgroundColor: data.bgColor,
       border: '1px solid #ccc',
       borderRadius: 4,
-      color: '#000',        // Force text to be black
+      color: '#000',
       fontWeight: 'bold',
       textAlign: 'center',
       whiteSpace: 'nowrap',
@@ -24,12 +25,42 @@ const NameNode = ({ data }) => {
         style={{ background: '#555' }}
       />
 
-      {/* Outgoing edge */}
       <Handle
         type="source"
         position={Position.Bottom}
         style={{ background: '#555' }}
       />
+
+      {data.isSelected && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'absolute',
+            bottom: 'calc(100% + 8px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: 8,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            padding: '8px 12px',
+            zIndex: 999,
+            whiteSpace: 'nowrap',
+            textAlign: 'left',
+            fontSize: 13,
+            fontWeight: 'normal',
+            pointerEvents: 'auto',
+            minWidth: 160,
+          }}
+        >
+          {(!data.positions || data.positions.length === 0)
+            ? <span style={{ color: '#999' }}>No positions recorded</span>
+            : data.positions.map(({ title, years, zodiac }, i) => (
+                <div key={i}>{title} ({years}, {zodiac})</div>
+              ))
+          }
+        </div>
+      )}
     </div>
   );
 };
@@ -223,6 +254,7 @@ const FamilyTreeInner = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
   const { fitView } = useReactFlow();
 
   const { allRawNodes, allRawEdges } = useMemo(() => {
@@ -259,6 +291,7 @@ const FamilyTreeInner = () => {
 
   // Update nodes and edges when sort mode changes
   React.useEffect(() => {
+    setSelectedNodeId(null);
     const ySpacing = 140;
     const NODE_WIDTH = 180; // Fixed width for each node, increased for more spacing
     const MIN_SPACING_BETWEEN_DYNASTIES = 30; // Minimum space between dynasties, increased for more spacing
@@ -687,14 +720,19 @@ const FamilyTreeInner = () => {
     fitView({ nodes: [node], duration: 800, padding: 0.2 });
   };
 
-  // Update node styles based on search
+  // Update node styles based on search and inject popup data
   const nodesWithSearchHighlight = useMemo(() => {
     return nodes.map(node => {
       const isMatch = matchingNodes.includes(node);
       const isCurrentMatch = isMatch && node === matchingNodes[currentSearchIndex];
-      
+
       return {
         ...node,
+        data: {
+          ...node.data,
+          isSelected: node.id === selectedNodeId,
+          positions: POSITIONS[node.id] ?? [],
+        },
         style: {
           ...node.style,
           border: isCurrentMatch ? '4px solid #ff0000' : isMatch ? '3px solid #ff6666' : undefined,
@@ -702,7 +740,7 @@ const FamilyTreeInner = () => {
         }
       };
     });
-  }, [nodes, matchingNodes, currentSearchIndex]);
+  }, [nodes, matchingNodes, currentSearchIndex, selectedNodeId]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
@@ -937,6 +975,8 @@ const FamilyTreeInner = () => {
         fitViewOptions={{ padding: 0.1, minZoom: 0.1, maxZoom: 2 }}
         minZoom={0.1}
         maxZoom={3}
+        onNodeClick={(_, node) => setSelectedNodeId(prev => prev === node.id ? null : node.id)}
+        onPaneClick={() => setSelectedNodeId(null)}
       >
         <Background />
         <Controls />
